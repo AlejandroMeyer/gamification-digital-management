@@ -1,6 +1,6 @@
 # IT Governance: The Directors' Cut 🎓🎮
 
-**A Gamified Learning Experience for Digital Management | Topic 01**
+**A Gamified Learning Experience for Digital Management | IT Governance & Compliance**
 
 ## 📖 Project Overview
 *IT Governance: The Directors' Cut* is a browser-based simulation game designed as the final project for the **Digital Management** Master's course. The game challenges players to navigate the complex landscape of IT Governance, Compliance, and Risk Management.
