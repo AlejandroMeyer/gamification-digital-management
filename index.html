@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>IT Governance: The Directors' Cut</title>
+    <!-- Allowed External Resource: jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Fonts: Press Start 2P (Pixel) and Share Tech Mono (Tech) -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #050a14;
+            --bg-light: #10182e;
+            --neon-cyan: #00f3ff;
+            --neon-pink: #ff0055;
+            --neon-yellow: #ffe600;
+            --neon-green: #00ff66;
+            --glass: rgba(16, 24, 46, 0.8);
+            --glass-border: rgba(0, 243, 255, 0.3);
+            --font-title: 'Press Start 2P', cursive;
+            --font-body: 'Share Tech Mono', monospace;
+        }
+
+        * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(180deg, var(--bg-light) 0%, var(--bg-dark) 100%);
+            color: white;
+            font-family: var(--font-body);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: background 0.5s ease;
+        }
+
+        /* Red Background for Defeat */
+        body.defeat-mode {
+            background: linear-gradient(180deg, #4a0010 0%, #1a0005 100%);
+        }
+
+        /* Blue Background for Victory */
+        body.victory-mode {
+            background: linear-gradient(180deg, #002244 0%, #000510 100%);
+        }
+
+        /* --- Typography & Utilities --- */
+        .title-font { font-family: var(--font-title); font-weight: 400; line-height: 1.5; }
+        .text-cyan { color: var(--neon-cyan); text-shadow: 2px 2px 0px rgba(0,0,0,0.5); }
+        .text-pink { color: var(--neon-pink); text-shadow: 2px 2px 0px rgba(0,0,0,0.5); }
+        .text-yellow { color: var(--neon-yellow); }
+        .hidden { display: none !important; }
+        .flex-center { display: flex; justify-content: center; align-items: center; }
+        .column { flex-direction: column; }
+        .full-screen { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+        
+        /* --- UI Components --- */
+        .btn {
+            background: var(--neon-yellow);
+            color: #000;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 30px; /* Pill shape for main action buttons */
+            font-family: var(--font-title);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 15px var(--neon-yellow);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            top: 0;
+        }
+        .btn:hover:not(:disabled) { transform: scale(1.05); box-shadow: 0 0 25px var(--neon-yellow); }
+        .btn:active:not(:disabled) { top: 2px; }
+        .btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            filter: grayscale(1);
+            box-shadow: none !important;
+        }
+        
+        .btn-cyan { background: var(--neon-cyan); box-shadow: 0 0 15px var(--neon-cyan); }
+        .btn-cyan:hover:not(:disabled) { box-shadow: 0 0 25px var(--neon-cyan); }
+
+        .btn-pink { background: transparent; border: 2px solid var(--neon-pink); color: var(--neon-pink); box-shadow: 0 0 10px rgba(255,0,85,0.3); }
+        .btn-pink:hover:not(:disabled) { background: var(--neon-pink); color: white; box-shadow: 0 0 20px var(--neon-pink); }
+        
+        .btn-dark { background: #1a1a2e; color: white; border: 1px solid #444; box-shadow: none; }
+        .btn-dark:hover:not(:disabled) { border-color: white; transform: scale(1.02); }
+
+        .btn-white { background: white; color: #000; border: none; box-shadow: 0 0 15px rgba(255,255,255,0.5); }
+        .btn-white:hover:not(:disabled) { box-shadow: 0 0 25px white; }
+
+        .card {
+            background: rgba(10, 15, 30, 0.95);
+            border: 1px solid #333;
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+            max-width: 90%;
+            width: 700px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+        }
+
+        /* --- Audio Controls --- */
+        #audio-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: rgba(0,0,0,0.6);
+            padding: 8px 15px;
+            border-radius: 20px;
+            border: 1px solid #444;
+        }
+        #volume-slider { width: 80px; accent-color: var(--neon-cyan); }
+        #mute-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; }
+
+        /* --- Screens --- */
+        
+        /* Neon Heartbeat Animation - Reduced Shine */
+        @keyframes neon-heartbeat {
+            0% { transform: scale(1); text-shadow: 0 0 5px var(--neon-cyan); opacity: 0.9; }
+            50% { transform: scale(1.02); text-shadow: 0 0 15px var(--neon-cyan); opacity: 1; }
+            100% { transform: scale(1); text-shadow: 0 0 5px var(--neon-cyan); opacity: 0.9; }
+        }
+
+        #start-screen h1 { 
+            font-size: 3.5rem; 
+            margin-bottom: 0.5rem; 
+            text-align: center;
+            line-height: 1.2;
+            color: var(--neon-cyan);
+            /* Apply Heartbeat Animation */
+            animation: neon-heartbeat 2s ease-in-out infinite;
+        }
+        #start-screen h2 { font-size: 1rem; margin-bottom: 4rem; color: var(--neon-pink); letter-spacing: 2px; text-transform: uppercase; }
+
+        /* Difficulty Grid */
+        .difficulty-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; width: 100%; margin-top: 1rem; }
+        .diff-btn { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+            padding: 2rem; 
+            background: rgba(0, 243, 255, 0.05);
+            border: 2px solid var(--neon-cyan);
+            border-radius: 15px; /* Rounded Squares */
+            cursor: pointer;
+            transition: all 0.2s;
+            height: 100%;
+        }
+        .diff-btn:hover { background: rgba(0, 243, 255, 0.15); transform: translateY(-3px); box-shadow: 0 0 20px rgba(0, 243, 255, 0.2); }
+        .diff-title { font-family: var(--font-title); font-size: 0.9rem; color: var(--neon-yellow); margin-bottom: 1rem; line-height: 1.4; text-transform: uppercase;}
+        .diff-meta { font-size: 0.9rem; color: #aaa; margin-bottom: 0.5rem; }
+        .diff-hearts { font-size: 0.9rem; color: var(--neon-pink); font-weight: bold; }
+
+        /* --- Game HUD --- */
+        #game-screen { padding: 1rem; padding-top: 60px; display: flex; flex-direction: column; height: 100%; }
+        .hud-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding: 0 10px; }
+        .hearts-container { display: flex; gap: 8px; align-items: center; }
+        
+        /* UPDATED: Hearts back to Circles */
+        .heart { 
+            width: 28px; 
+            height: 28px; 
+            background: var(--neon-pink); 
+            border-radius: 50%; /* Circle */
+            box-shadow: 0 0 15px var(--neon-pink); 
+            transition: all 0.3s; 
+        }
+        .heart.lost { 
+            background: #555966; /* Grey when lost */
+            box-shadow: inset 0 0 5px #222; 
+        }
+        
+        #role-display { font-family: var(--font-title); font-size: 0.8rem; color: var(--neon-yellow); text-transform: uppercase; letter-spacing: 1px; }
+
+        /* --- Race Track --- */
+        .track-container { flex: 1; display: flex; flex-direction: column; gap: 15px; position: relative; margin-bottom: 1rem; padding: 0 10px; }
+        .lane { 
+            height: 35px; 
+            background: rgba(255,255,255,0.03); 
+            border-radius: 10px; 
+            position: relative; 
+            overflow: hidden; 
+        }
+        .lane.player { height: 50px; border: 1px solid var(--neon-cyan); background: rgba(0, 243, 255, 0.05); }
+        .bar { 
+            height: 100%; 
+            width: 0%; 
+            border-radius: 10px; 
+            transition: width 0.3s linear; 
+            display: flex; 
+            align-items: center; 
+            justify-content: flex-end; 
+            padding-right: 15px;
+            font-size: 0.8rem;
+            font-family: var(--font-title);
+            box-shadow: 5px 0 15px rgba(0,0,0,0.5);
+            white-space: nowrap;
+        }
+        .bar-player { background: linear-gradient(90deg, #0055ff, var(--neon-cyan)); color: #000; }
+        .bar-bot-1 { background: linear-gradient(90deg, #550000, #ff0000); }
+        .bar-bot-2 { background: linear-gradient(90deg, #553300, #ffaa00); }
+        .bar-bot-3 { background: linear-gradient(90deg, #000055, #4444ff); }
+
+        /* --- Orbs (Updated Style) --- */
+        #orb-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 10; }
+        .orb {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            pointer-events: auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.1s;
+        }
+        .orb:active { transform: scale(0.9); }
+        .orb-inner { width: 60%; height: 60%; border-radius: 50%; }
+
+        /* Green Orb - Glowing Ring Style */
+        .orb.green {
+            background: rgba(0, 255, 102, 0.1);
+            border: 3px solid #fff;
+            box-shadow: 0 0 15px var(--neon-green), inset 0 0 10px var(--neon-green);
+        }
+        .orb.green .orb-inner { background: var(--neon-green); box-shadow: 0 0 10px var(--neon-green); }
+
+        /* Red Orb - Glowing Ring Style */
+        .orb.red {
+            background: rgba(255, 0, 85, 0.1);
+            border: 3px solid #ff99bb;
+            box-shadow: 0 0 15px var(--neon-pink), inset 0 0 10px var(--neon-pink);
+        }
+        .orb.red .orb-inner { background: var(--neon-pink); box-shadow: 0 0 10px var(--neon-pink); }
+
+        /* Grey Orb - Ring Style */
+        .orb.grey {
+            background: rgba(100, 100, 100, 0.1);
+            border: 3px solid #aaa;
+            box-shadow: 0 0 10px #888;
+        }
+        .orb.grey .orb-inner { background: #666; }
+
+
+        /* --- Quiz Section --- */
+        #quiz-container { 
+            background: #0b1021; 
+            border: 2px solid var(--neon-cyan); 
+            border-radius: 20px; 
+            padding: 2rem; 
+            position: relative; 
+            z-index: 20;
+            min-height: 280px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.1);
+        }
+        #quiz-container.frozen { border-color: var(--neon-pink); box-shadow: 0 0 20px rgba(255, 0, 85, 0.2); animation: shake 0.5s; }
+        
+        .question-text { font-family: var(--font-title); font-size: 1rem; line-height: 1.6; margin-bottom: 1.5rem; color: white; }
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .option-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 1.2rem;
+            border-radius: 12px;
+            text-align: left;
+            color: #ccc;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+            font-family: var(--font-body);
+        }
+        .option-btn:hover:not(:disabled) { background: rgba(0, 243, 255, 0.1); border-color: var(--neon-cyan); color: white; transform: translateY(-2px); }
+        .option-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        /* --- Overlays & End Screens --- */
+        .overlay { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.95); 
+            z-index: 50; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            border-radius: 18px;
+            border: 2px solid var(--neon-pink);
+            padding: 20px;
+        }
+        .freeze-msg { font-size: 2.5rem; color: var(--neon-pink); font-family: var(--font-title); margin-bottom: 1rem; text-shadow: 3px 3px 0 #500; letter-spacing: -2px; }
+        
+        .correct-answer-display { 
+            margin-top: 1rem; padding: 1.2rem; 
+            background: #111; border: 1px solid #333; border-radius: 10px; width: 90%;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        #freeze-label {
+            font-size: 0.9rem; 
+            color: #888; 
+            font-family: var(--font-body); 
+            margin-bottom: 10px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #freeze-correct-text {
+            font-size: 1.1rem; /* Reduced from 2.2rem to handle long strings */
+            line-height: 1.6;
+            color: var(--neon-cyan);
+            font-family: var(--font-title);
+            text-align: center;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            width: 100%;
+        }
+
+        /* --- End Screen Specifics --- */
+        #end-screen h1 { font-size: 3rem; margin-bottom: 0.5rem; }
+        .mission-analysis {
+            border: 1px solid var(--neon-pink);
+            background: rgba(255, 0, 85, 0.05);
+            padding: 1.5rem;
+            border-radius: 15px;
+            text-align: left;
+            margin-bottom: 2rem;
+        }
+        .mission-analysis h3 { 
+            font-family: var(--font-title); 
+            color: var(--neon-pink); 
+            margin-top: 0; 
+            font-size: 1rem; 
+            letter-spacing: 1px; 
+            margin-bottom: 10px;
+        }
+
+        /* --- Charts --- */
+        .chart-container { margin: 2rem 0; width: 100%; height: 160px; display: flex; align-items: flex-end; justify-content: center; gap: 20px; background: rgba(0,0,0,0.3); padding: 20px; border-radius: 15px; }
+        .chart-bar-group { display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; width: 40px; }
+        .chart-bar { width: 100%; background: var(--neon-cyan); border-radius: 4px; transition: height 1s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .chart-label { font-family: var(--font-body); font-size: 0.7rem; color: #888; margin-top: 8px; }
+        .chart-val { font-family: var(--font-title); font-size: 0.7rem; font-weight: bold; margin-bottom: 5px; color: white; }
+
+        /* --- Animations --- */
+        @keyframes pulse { 0% { opacity: 1; text-shadow: 0 0 10px var(--neon-cyan); } 50% { opacity: 0.8; text-shadow: 0 0 20px var(--neon-cyan); } 100% { opacity: 1; text-shadow: 0 0 10px var(--neon-cyan); } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+        
+        #confetti-canvas { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 999; }
+        
+        @media (max-width: 768px) {
+            .options-grid { grid-template-columns: 1fr; }
+            .card { width: 95%; padding: 1.5rem; }
+            .difficulty-grid { grid-template-columns: 1fr; gap: 10px; }
+            #start-screen h1 { font-size: 2rem; }
+            .btn { width: 100%; margin-bottom: 10px; }
+            .chart-container { gap: 10px; }
+            #freeze-correct-text { font-size: 0.8rem; }
+            .freeze-msg { font-size: 1.8rem; }
+        }
+    </style>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+
+    <!-- Audio & Volume Controls -->
+    <div id="audio-controls">
+        <button id="mute-btn">🔊</button>
+        <input type="range" id="volume-slider" min="0" max="1" step="0.1" value="0.5">
+    </div>
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="full-screen flex-center column">
+        <h1 class="title-font">IT GOVERNANCE<br>& COMPLIANCE</h1>
+        <h2 class="title-font">The Directors' Cut</h2>
+        <!-- UPDATED: Button now directs to How-To screen via JS -->
+        <button id="start-btn" class="btn">BEGIN CAREER</button>
+    </div>
+
+    <!-- Difficulty Screen (Moved to after Onboarding in flow) -->
+    <div id="difficulty-screen" class="full-screen flex-center column hidden">
+        <h2 class="title-font text-white" style="margin-bottom: 1rem; font-size: 1.5rem;">Select Your Role</h2>
+        <div class="card" style="background: transparent; border: none; box-shadow: none;">
+            <!-- UPDATED: Buttons now call startGame directly -->
+            <div class="difficulty-grid">
+                <div class="diff-btn" onclick="game.startGame('easy')">
+                    <span class="diff-title text-yellow">Junior Analyst</span>
+                    <span class="diff-meta">EASY</span>
+                    <span class="diff-hearts">6 Hearts</span>
+                </div>
+                <div class="diff-btn" onclick="game.startGame('medium')">
+                    <span class="diff-title text-yellow">IT Project Lead</span>
+                    <span class="diff-meta">MEDIUM</span>
+                    <span class="diff-hearts">5 Hearts</span>
+                </div>
+                <div class="diff-btn" onclick="game.startGame('hard')">
+                    <span class="diff-title text-yellow">Chief Digital Officer</span>
+                    <span class="diff-meta">HARD</span>
+                    <span class="diff-hearts">4 Hearts</span>
+                </div>
+                <div class="diff-btn" onclick="game.startGame('expert')">
+                    <span class="diff-title text-yellow">Prof. Dr. MDBM Director</span>
+                    <span class="diff-meta">EXPERT</span>
+                    <span class="diff-hearts">3 Hearts</span>
+                </div>
+            </div>
+            
+            <!-- NEW BACK BUTTON -->
+            <div style="margin-top: 2rem;">
+                <button class="btn btn-dark" onclick="game.showScreen('howto-screen')">BACK TO ONBOARDING</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Onboarding / How To Play (Now 2nd screen in flow) -->
+    <div id="howto-screen" class="full-screen flex-center column hidden">
+        <div class="card">
+            <h2 class="title-font text-cyan center" style="margin-bottom: 1rem;">ONBOARDING</h2>
+            
+            <p style="color: #ffffff; font-family: var(--font-body); margin-bottom: 20px; line-height: 1.5; text-align: center; font-size: 0.95rem;">
+                Welcome to The Directors' Cut! This game is the final assessment project for the Digital Management module. It tests your ability to apply IT Governance and Compliance theories under pressure. Your goal is to reach 100% project completion before your competitors (Audit, Threats, and Legacy Systems) overtake your infrastructure.
+            </p>
+
+            <div style="background: rgba(255,255,255,0.05); border-radius: 15px; padding: 1.5rem; text-align: left; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <!-- Item 1: Mechanics -->
+                <div style="display: flex; align-items: start;">
+                    <div style="min-width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #00f3ff, #0055ff); margin-right:15px; box-shadow: 0 0 10px var(--neon-cyan);"></div>
+                    <p style="margin: 0; font-size: 0.9rem; line-height: 1.4;">Answer correctly to move your bar forward.</p>
+                </div>
+                <!-- Item 2: Competitors (UPDATED COLOR & TEXT) -->
+                <div style="display: flex; align-items: start;">
+                    <div style="min-width: 30px; height: 30px; border-radius: 50%; border: 2px solid #ffaa00; background: rgba(255, 170, 0, 0.2); box-shadow: 0 0 10px #ffaa00; margin-right:15px;"></div>
+                    <p style="margin: 0; font-size: 0.9rem; line-height: 1.4;">Competitors race automatically. If they finish first, <span class="text-pink" style="font-weight: bold;">YOU LOSE</span>.</p>
+                </div>
+                <!-- Item 3: Green Orbs -->
+                <div style="display: flex; align-items: start;">
+                    <div style="min-width: 30px; height: 30px; border-radius: 50%; background: rgba(0, 255, 102, 0.2); border: 2px solid white; box-shadow: 0 0 10px var(--neon-green); margin-right:15px; display: flex; align-items: center; justify-content: center;">
+                        <div style="width: 60%; height: 60%; background: var(--neon-green); border-radius: 50%;"></div>
+                    </div>
+                    <p style="margin: 0; font-size: 0.9rem; line-height: 1.4;">Green Orbs are <span class="text-cyan">Patches</span>. They remove 2 wrong answers.</p>
+                </div>
+                <!-- Item 4: Red Orbs (NEW) -->
+                <div style="display: flex; align-items: start;">
+                    <div style="min-width: 30px; height: 30px; border-radius: 50%; background: rgba(255, 0, 85, 0.2); border: 2px solid #ff99bb; box-shadow: 0 0 10px var(--neon-pink); margin-right:15px; display: flex; align-items: center; justify-content: center;">
+                        <div style="width: 60%; height: 60%; background: var(--neon-pink); border-radius: 50%;"></div>
+                    </div>
+                    <p style="margin: 0; font-size: 0.9rem; line-height: 1.4;">Red Orbs = <span class="text-pink">Malware</span>. If clicked: System Freeze + Life Lost. AVOID THEM!</p>
+                </div>
+                 <!-- Item 5: Grey Orbs -->
+                <div style="display: flex; align-items: start;">
+                    <div style="min-width: 30px; height: 30px; border-radius: 50%; background: rgba(100, 100, 100, 0.2); border: 2px solid #aaa; margin-right:15px; display: flex; align-items: center; justify-content: center;">
+                        <div style="width: 60%; height: 60%; background: #666; border-radius: 50%;"></div>
+                    </div>
+                    <p style="margin: 0; font-size: 0.9rem; line-height: 1.4;">Grey Orbs are Decoys. Ignore them!</p>
+                </div>
+            </div>
+
+            <!-- New Difficulty Warning -->
+            <p style="color: #ffe600; font-size: 0.85rem; margin-top: 1.5rem; margin-bottom: 0.5rem; opacity: 0.9;">
+                ⚠ Higher Difficulty = Faster Competitors, Fewer Lives, and Harder Questions.
+            </p>
+
+            <!-- MANDATORY CHECKBOX -->
+            <div id="onboarding-consent" style="margin: 1rem 0; display: flex; align-items: center; justify-content: center; gap: 12px; background: rgba(255, 0, 85, 0.1); padding: 10px; border-radius: 10px; border: 1px solid rgba(255, 0, 85, 0.3);">
+                <input type="checkbox" id="consent-checkbox" style="width: 22px; height: 22px; accent-color: var(--neon-pink); cursor: pointer; filter: drop-shadow(0 0 5px var(--neon-pink));">
+                <label for="consent-checkbox" style="font-size: 0.85rem; color: #eee; cursor: pointer; text-align: left;">I have read the onboarding and I understand how to play.</label>
+            </div>
+
+            <!-- Updated Buttons -->
+            <div style="text-align: center; margin-top: 1.5rem; display: flex; justify-content: center; gap: 15px;">
+                <button class="btn btn-dark" onclick="game.showScreen('start-screen')">BACK</button>
+                <button id="choose-role-btn" class="btn btn-cyan" onclick="game.showScreen('difficulty-screen')" disabled>CHOOSE ROLE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="hidden">
+        <!-- HUD -->
+        <div class="hud-top">
+            <div class="hearts-container" id="hearts-display">
+                <!-- Hearts injected by JS -->
+            </div>
+            <div id="role-display">JUNIOR ANALYST</div>
+        </div>
+
+        <!-- Track -->
+        <div class="track-container">
+            <div class="lane player"><div class="bar bar-player" id="bar-player" style="width: 0%">YOU</div></div>
+            <div class="lane"><div class="bar bar-bot-1" id="bar-bot-0" style="width: 0%">External Audit</div></div>
+            <div class="lane"><div class="bar bar-bot-2" id="bar-bot-1" style="width: 0%">Cyber Threats</div></div>
+            <div class="lane"><div class="bar bar-bot-3" id="bar-bot-2" style="width: 0%">Legacy Systems</div></div>
+            
+            <!-- Orbs fall here -->
+            <div id="orb-layer"></div>
+        </div>
+
+        <!-- Quiz -->
+        <div id="quiz-container">
+            <div id="question-text" class="question-text">Loading...</div>
+            <div id="options-grid" class="options-grid">
+                <!-- Options injected by JS -->
+            </div>
+            
+            <!-- Freeze Overlay -->
+            <div id="freeze-overlay" class="overlay hidden">
+                <div class="freeze-msg">SYSTEM FREEZE</div>
+                <div class="text-white title-font" style="font-size: 3rem;" id="freeze-timer">3</div>
+                <div class="correct-answer-display">
+                    <div id="freeze-label">The correct answer was:</div>
+                    <div id="freeze-correct-text">Option</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- End Screen (Win/Lose) -->
+    <div id="end-screen" class="full-screen flex-center column hidden">
+        <canvas id="confetti-canvas"></canvas>
+        <div class="card" style="z-index: 50; max-height: 95vh; overflow-y: auto; width: 800px;">
+            <h1 id="end-title" class="title-font">SYSTEM BREACH</h1>
+            <p id="end-message" style="margin-bottom: 2rem; color: #ccc;">The competitors overtook your infrastructure. Audit failed.</p>
+
+            <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-bottom: 2rem;">
+                <button class="btn btn-white" style="border-radius: 30px;" onclick="game.resetGame()">Try Again</button>
+                <button class="btn btn-dark" style="border-radius: 30px;" onclick="game.resetGame()">Change Difficulty</button>
+                <button id="pdf-btn" class="btn btn-cyan" style="border-radius: 30px;" onclick="game.generatePDF()">Download Report</button>
+            </div>
+
+            <!-- Learning Suggestions (Lose only) -->
+            <div id="learning-box" class="mission-analysis hidden">
+                <h3>MISSION ANALYSIS</h3>
+                <p id="adaptive-msg" style="font-size: 0.9rem; color: #ccc; margin-bottom: 15px;">Keep practicing! You're building a strong foundation.</p>
+                <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
+                    <div style="font-size: 0.8rem; color: var(--neon-cyan); margin-bottom: 5px; font-weight: bold;">REVIEW THESE TOPICS:</div>
+                    <div id="topic-list" style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 0.85rem; color: white;"></div>
+                </div>
+            </div>
+
+            <!-- Stats Chart -->
+            <div class="chart-container" id="stats-chart">
+                <!-- Bars injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONSTANTS & DATA ---
+        const CONFIG = {
+            hearts: { 'easy': 6, 'medium': 5, 'hard': 4, 'expert': 3 },
+            botSpeed: { 'easy': 0.015, 'medium': 0.03, 'hard': 0.05, 'expert': 0.07 }, 
+            titles: { 'easy': 'Junior Analyst', 'medium': 'IT Project Lead', 'hard': 'Chief Digital Officer', 'expert': 'Prof. Dr. MDBM Director' }
+        };
+
+        const QUESTIONS = [
+            // --- EASY LEVEL (20 Questions) ---
+            { level: 'easy', q: "What is the primary function of a 'Persona' in Design Thinking?", options: ["To represent a user segment", "To design the logo", "To calculate costs", "To manage the database"], correct: 0 },
+            { level: 'easy', q: "In Scrum, what is the 'Sprint'?", options: ["A time-boxed iteration", "A running race", "A coding language", "A meeting type"], correct: 0 },
+            { level: 'easy', q: "What does 'GDPR' primarily protect?", options: ["Personal Data", "Corporate Secrets", "Government Files", "Copyrights"], correct: 0 },
+            { level: 'easy', q: "Which ceremony is held at the end of a Sprint to inspect the product?", options: ["Sprint Review", "Daily Standup", "Backlog Refinement", "Project Kickoff"], correct: 0 },
+            { level: 'easy', q: "What is a 'User Story'?", options: ["A feature from user perspective", "A bedtime story", "A bug report", "A technical spec"], correct: 0 },
+            { level: 'easy', q: "What is the 'Sharing Economy' best known for?", options: ["Sharing goods and services (e.g., Airbnb)", "Sharing passwords", "Government handouts", "Free software"], correct: 0 },
+            { level: 'easy', q: "What defines the 'Abundance Economy'?", options: ["Unlimited supply of digital goods", "Scarcity of resources", "High manufacturing costs", "Limited internet access"], correct: 0 },
+            { level: 'easy', q: "What is the main focus of the 'Information Economy'?", options: ["Production and trade of information", "Building physical roads", "Mining coal", "Agriculture"], correct: 0 },
+            { level: 'easy', q: "In a Customer Journey, what is a 'Touchpoint'?", options: ["Where user and product interact", "A touchscreen button", "The price of the product", "The end of the project"], correct: 0 },
+            { level: 'easy', q: "What does 'B2C' stand for in digital business?", options: ["Business to Consumer", "Business to Company", "Back to Code", "Basic to Complex"], correct: 0 },
+            { level: 'easy', q: "What is 'Digitization'?", options: ["Converting analog to digital", "Writing email", "Buying a computer", "Surfing the web"], correct: 0 },
+            { level: 'easy', q: "Which company is cited as a prime example of the Digital Economy's market cap dominance?", options: ["Apple", "Exxon Mobil", "Walmart", "Ford"], correct: 0 },
+            { level: 'easy', q: "What is a 'Prototype' in Design Thinking?", options: ["A preliminary model to test ideas", "The final expensive product", "A legal contract", "A marketing email"], correct: 0 },
+            { level: 'easy', q: "What is 'Crowdsourcing'?", options: ["Obtaining services from a large group", "Hiring a new manager", "Selling to a crowd", "Cloud hosting"], correct: 0 },
+            { level: 'easy', q: "What does the 'A' stand for in the acronym 'AI'?", options: ["Artificial", "Automated", "Analog", "Applied"], correct: 0 },
+            { level: 'easy', q: "In the context of Personas, what are 'Pains'?", options: ["Frustrations and difficulties", "Physical injuries", "Cost of the software", "System errors"], correct: 0 },
+            { level: 'easy', q: "What is the core idea of 'Open Innovation'?", options: ["Using external and internal ideas", "Keeping secrets", "No patents allowed", "Only internal R&D"], correct: 0 },
+            { level: 'easy', q: "What is a 'Virtual Economy'?", options: ["Economy within virtual worlds", "Bitcoin trading", "Fake money", "Stock market simulation"], correct: 0 },
+            { level: 'easy', q: "What is the first step in the Design Thinking process?", options: ["Understand / Empathize", "Prototype", "Test", "Sell"], correct: 0 },
+            { level: 'easy', q: "What does 'C2C' stand for?", options: ["Consumer to Consumer (e.g., eBay)", "Code to Cloud", "Company to Client", "Cost to Capital"], correct: 0 },
+
+            // --- MEDIUM LEVEL (20 Questions) ---
+            { level: 'medium', q: "A server goes down. According to ITIL, what is the first step?", options: ["Log the Incident", "Call the CEO", "Buy a new server", "Panic"], correct: 0 },
+            { level: 'medium', q: "What distinguishes a 'Digital Organization' from a traditional one?", options: ["End-to-end digital processes", "Using email", "Having a website", "Digital Marketing"], correct: 0 },
+            { level: 'medium', q: "Which role in Scrum removes impediments?", options: ["Scrum Master", "Product Owner", "Developer", "Stakeholder"], correct: 0 },
+            { level: 'medium', q: "What is the MVP (Minimum Viable Product)?", options: ["Version with just enough features to learn", "The final product", "A prototype with no code", "Most expensive version"], correct: 0 },
+            { level: 'medium', q: "In DevOps, what does CI stand for?", options: ["Continuous Integration", "Computer Interface", "Code Inspection", "Cloud Infrastructure"], correct: 0 },
+            { level: 'medium', q: "Where is value generated in the 'Network Economy'?", options: ["Through network effects", "Through manufacturing", "Through copyright", "Through labor hours"], correct: 0 },
+            { level: 'medium', q: "What characterizes the 'Data Economy'?", options: ["Harvesting and analyzing data", "Storing files", "Faster internet speeds", "Database encryption"], correct: 0 },
+            { level: 'medium', q: "In Design Thinking, which phase follows 'Understand' and 'Observe'?", options: ["Point of View", "Prototype", "Test", "Reflect"], correct: 0 },
+            { level: 'medium', q: "What is the 'Attention Economy' based on?", options: ["The user's limited attention span", "Advertising revenue", "Clickbait", "Video streaming"], correct: 0 },
+            { level: 'medium', q: "What is the main characteristic of 'Closed Innovation'?", options: ["Innovation happens only inside the firm", "Sharing all patents", "Open source code", "Collaborating with rivals"], correct: 0 },
+            { level: 'medium', q: "In the Customer Journey Map, what does the 'Emotion Curve' visualize?", options: ["The user's feelings at each step", "The stock price", "The speed of the app", "The project timeline"], correct: 0 },
+            { level: 'medium', q: "What is 'Platform Economy'?", options: ["Connecting user groups via platforms", "Building hardware platforms", "Using Windows OS", "Social Media marketing"], correct: 0 },
+            { level: 'medium', q: "In Wirtz's Digital Business Development, what is Stage 1?", options: ["Static Presentation", "Transaction", "Interaction", "Transformation"], correct: 0 },
+            { level: 'medium', q: "What does 'Thinking' refer to in the Customer Journey Template?", options: ["What the persona thinks/says at a step", "The developer's logic", "The AI processing", "Strategic planning"], correct: 0 },
+            { level: 'medium', q: "Who coined the term 'Post-Industrial Society'?", options: ["Daniel Bell", "Steve Jobs", "Bill Gates", "Tim Berners-Lee"], correct: 0 },
+            { level: 'medium', q: "What is 'Administration to Business (A2B)'?", options: ["Online tendering for public orders", "Paying taxes", "Voting online", "Business lobbying"], correct: 0 },
+            { level: 'medium', q: "What is the 'Boomerang Effect' in Open Innovation?", options: ["Spin-offs/Externalizing internal ideas", "Ideas coming back rejected", "Recurring profits", "Customer returns"], correct: 0 },
+            { level: 'medium', q: "Which Kondratieff Cycle is associated with the 'Information Society'?", options: ["5th Kondratieff", "1st Kondratieff", "3rd Kondratieff", "6th Kondratieff"], correct: 0 },
+            { level: 'medium', q: "What defines a 'Digital Team' according to Wirtz?", options: ["Work processes are digitized", "They work from home", "They use Slack", "They are AI agents"], correct: 0 },
+            { level: 'medium', q: "What does 'Gains' refer to in a Persona profile?", options: ["What makes the user happy/satisfied", "Financial profit", "Gaining weight", "Acquiring customers"], correct: 0 },
+
+            // --- HARD LEVEL (20 Questions) ---
+            { level: 'hard', q: "You face a 'Shadow IT' issue. What is the biggest risk?", options: ["Compliance & Security gaps", "High Software Costs", "Too much innovation", "Vendor Lock-in"], correct: 0 },
+            { level: 'hard', q: "In the Digital Transformation Pyramid, what drives 'Digital Leadership'?", options: ["Mindset & Culture", "Buying Hardware", "Cloud Storage", "Faster Internet"], correct: 0 },
+            { level: 'hard', q: "What is 'Technical Debt'?", options: ["Implied cost of additional rework later", "Money owed to vendors", "Server fees", "Bank Loan"], correct: 0 },
+            { level: 'hard', q: "Which is a key principle of the Agile Manifesto?", options: ["Responding to change over following a plan", "Comprehensive documentation", "Contract negotiation", "Processes and tools"], correct: 0 },
+            { level: 'hard', q: "Bypassing the CAB (Change Advisory Board) leads to?", options: ["Compliance Violation & Risk", "Faster Time-to-Market", "Agile Win", "Efficient Ops"], correct: 0 },
+            { level: 'hard', q: "According to Wirtz's '5 Phases of Digital Transformation', what characterizes the 'Digital Conversion' phase?", options: ["Substantial system changes with automation under control", "Minimal human oversight and full automation", "Low technology impact controlled by humans", "Simple desktop technology usage"], correct: 0 },
+            { level: 'hard', q: "In the 'Digital Business Development Stages', what defines Stage 4 (Value and Partner Integration)?", options: ["Electronic integration into value-added processes", "Static presentation of products", "Simple online transactions (buying/selling)", "Pre-sales communication only"], correct: 0 },
+            { level: 'hard', q: "The 'NOPA+' model is associated with Digital Leadership characteristics. What does the 'A' stand for?", options: ["Agility", "Automation", "Analytics", "Authority"], correct: 0 },
+            { level: 'hard', q: "Which technologies specifically define a 'Fully Integrated Digital Organization' in the development stages model?", options: ["Cloud/Edge computing and Artificial Intelligence", "Broadband Internet and Big Data", "Simple Internet technology and Email", "Desktop technology and Fax"], correct: 0 },
+            { level: 'hard', q: "In the Design Thinking process, what is the primary goal of the 'Point of View' phase?", options: ["Synthesizing data to define the problem statement", "Generating as many ideas as possible", "Building a physical prototype", "Collecting data from various sources"], correct: 0 },
+            { level: 'hard', q: "According to the 'Digital Economics' framework, what characterizes the 'Attention Economy'?", options: ["Value created by the user's limited attention", "Unlimited supply of digital goods", "Economics within virtual worlds", "Harvesting and analyzing data"], correct: 0 },
+            { level: 'hard', q: "What is the 'Boomerang Effect' in the context of Open Innovation?", options: ["Externalizing internal ideas to a new market (spin-offs)", "Rejecting external technology", "Buying competitors to close the market", "Hiring former employees back"], correct: 0 },
+            { level: 'hard', q: "Which interaction pattern represents 'Online tendering for public-sector orders'?", options: ["Administration to Business (A2B)", "Consumer to Administration (C2A)", "Business to Consumer (B2C)", "Intra-Administration"], correct: 0 },
+            { level: 'hard', q: "In the 'Success Factors of Digital Business', which capability includes 'Lock-in effects'?", options: ["Networking, Integration and Automation Capability", "Customer Orientation / Ease of Use", "Strategic and Organizational Flexibility", "Digital Innovation / AI Capability"], correct: 0 },
+            { level: 'hard', q: "According to Wirtz (2024), what is the key difference between 'Digital Migration' and 'Digital Disruption'?", options: ["Migration is moderate change; Disruption is fundamental change", "Migration is faster than Disruption", "Disruption uses analog mindsets; Migration uses digital", "Migration is for startups; Disruption is for corporations"], correct: 0 },
+            { level: 'hard', q: "In the 'Customer Journey Map' template, what does the 'Thinking' step specifically document?", options: ["What the persona says or thinks about the step", "The physical actions taken", "The person responsible for the process", "The emotional curve of the user"], correct: 0 },
+            { level: 'hard', q: "Which 'Kondratieff Cycle' is currently associated with the 'Information Society' (approx. 1950-2005)?", options: ["The 5th Kondratieff", "The 3rd Kondratieff", "The 1st Kondratieff", "The 6th Kondratieff"], correct: 0 },
+            { level: 'hard', q: "What distinguishes a 'Digital Team' from a traditional 'Virtual Team' in the definition provided by Wirtz?", options: ["All essential work processes are digitized", "Members are just geographically separated", "They use email for communication", "They meet once a year in person"], correct: 0 },
+            { level: 'hard', q: "In Design Thinking, which three components must intersect for a successful innovation?", options: ["Feasibility, Viability, Desirability", "Cost, Speed, Quality", "People, Planet, Profit", "Hardware, Software, Network"], correct: 0 },
+            { level: 'hard', q: "According to the 'Digital Transformation Pyramid', what is the foundation layer that enables the 'Digital Organization'?", options: ["Digital Teams", "Digital Leadership", "Digital Transformation", "Digital Economics"], correct: 0 },
+
+            // --- EXPERT LEVEL (20 Questions) ---
+            { level: 'expert', q: "Bypassing the CAB (Change Advisory Board) leads to?", options: ["Compliance Violation & Risk", "Faster Time-to-Market", "Agile Win", "Efficient Ops"], correct: 0 },
+            { level: 'expert', q: "COBIT 2019: Governance vs Management?", options: ["Governance directs; Management runs", "Governance is for IT only", "Management is for Board", "They are the same"], correct: 0 },
+            { level: 'expert', q: "What is the 'Innovator's Dilemma'?", options: ["Failing to adopt new tech due to current success", "Running out of ideas", "Hiring too many creatives", "Choosing logo colors"], correct: 0 },
+            { level: 'expert', q: "Which ISO standard focuses on Information Security?", options: ["ISO 27001", "ISO 9001", "ISO 14001", "ISO 20000"], correct: 0 },
+            { level: 'expert', q: "What is 'Zero Trust' architecture?", options: ["Never trust, always verify", "Trust internal network", "No passwords required", "Trust but verify"], correct: 0 },
+            { level: 'expert', q: "In Wirtz's Digital Business Development, what specific capability distinguishes 'Stage 3 (Transaction)' from Stage 2?", options: ["The ability to legally conclude contracts and payments online", "Simple email communication", "Fully automated supply chain", "Integration of partners into the value chain"], correct: 0 },
+            { level: 'expert', q: "What is the 'Inside-Out' process in the Open Innovation model?", options: ["Externalizing internal knowledge (e.g., licensing, spin-offs)", "Integrating external ideas into the company", "Hiring external consultants", "Buying patents from competitors"], correct: 0 },
+            { level: 'expert', q: "In the Lewrick Design Thinking process, what is the specific purpose of the 'Reflect' phase?", options: ["To review the entire design process and identify improvements", "To look at the product in a mirror", "To calculate the final budget", "To launch the product to market"], correct: 0 },
+            { level: 'expert', q: "Which of Wirtz's '4 Success Factors' specifically involves 'Lock-in effects' and 'Standard setting'?", options: ["Networking, Integration and Automation Capability", "Customer Orientation", "Strategic Flexibility", "Digital Innovation"], correct: 0 },
+            { level: 'expert', q: "What does the 'Influencer' field in the Persona template specifically identify?", options: ["People or factors that influence the persona's decisions", "Social media stars the persona follows", "The boss of the persona", "Competitors"], correct: 0 },
+            { level: 'expert', q: "In the Abundance Economy, what theoretically happens to the marginal cost of digital goods?", options: ["It approaches zero", "It doubles", "It remains static", "It depends on inflation"], correct: 0 },
+            { level: 'expert', q: "According to the uploaded lecture schedule, what is the topic of the Guest Lecture by Bechtle?", options: ["International Business Transformation in Practice", "Advanced Coding Techniques", "The History of the Internet", "Hardware Sales Strategies"], correct: 0 },
+            { level: 'expert', q: "Which Digital Economic model is defined by 'Value created by the user's limited attention'?", options: ["Attention Economy", "Time Economy", "Focus Economy", "Media Economy"], correct: 0 },
+            { level: 'expert', q: "In the 'Customer Journey' template, which field is used to document 'Improvement possibilities'?", options: ["Opportunities", "Thinking", "Action", "Emotions"], correct: 0 },
+            { level: 'expert', q: "The 5th Kondratieff Cycle (approx. 1950-2005) was driven by which core technology?", options: ["Information Technology / Computer", "Steam Engine", "Electricity", "Artificial Intelligence"], correct: 0 },
+            { level: 'expert', q: "In the context of 'Digital Leadership' (NOPA+), what does the 'O' stand for?", options: ["Openness", "Organization", "Opportunity", "Optimism"], correct: 0 },
+            { level: 'expert', q: "What is the primary characteristic of the 'Digital Marketplace' model in Wirtz's framework?", options: ["Interaction of supply and demand supported by transaction/logistics", "One seller selling to many buyers", "Social media interaction only", "Government regulation of prices"], correct: 0 },
+            { level: 'expert', q: "What distinguishes 'Digital Disruption' from 'Digital Migration' in terms of market impact?", options: ["Disruption leads to fundamental changes in value proposition", "Disruption is slower and safer", "Migration changes the core business model", "They are synonymous"], correct: 0 },
+            { level: 'expert', q: "In the 'Virtual Economy', where does the economic activity primarily take place?", options: ["Within virtual worlds (e.g., Second Life, Gaming)", "In the stock market", "On the Dark Web", "In cryptocurrency exchanges only"], correct: 0 },
+            { level: 'expert', q: "What is the 'Not-Sold-Here' syndrome in the context of Open Innovation?", options: ["Resistance to externalizing/selling internal knowledge", "Refusing to buy external tech", "Marketing failure", "Lack of sales staff"], correct: 0 }
+        ];
+
+        const LEARNING_TOPICS = ["IT Governance", "Compliance Frameworks", "Internal Controls", "Cybersecurity Basics", "Risk Management", "Audit & Regulation"];
+
+        // --- AUDIO ENGINE ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const masterGain = audioCtx.createGain();
+        masterGain.connect(audioCtx.destination);
+        masterGain.gain.value = 0.5;
+
+        class AudioEngine {
+            constructor() {
+                this.muted = false;
+                this.isPlaying = false;
+                this.loopId = null;
+                this.nextNoteTime = 0;
+                this.tempo = 110;
+                this.beat = 0;
+            }
+
+            toggleMute() {
+                this.muted = !this.muted;
+                masterGain.gain.setTargetAtTime(this.muted ? 0 : document.getElementById('volume-slider').value, audioCtx.currentTime, 0.1);
+                return this.muted;
+            }
+
+            setVolume(val) {
+                if(!this.muted) masterGain.gain.setTargetAtTime(val, audioCtx.currentTime, 0.1);
+            }
+
+            playTone(freq, type, duration, vol = 0.1) {
+                if (this.muted) return;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+                
+                osc.connect(gain);
+                gain.connect(masterGain);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            }
+
+            playSFX(type) {
+                if (this.muted) return;
+                const now = audioCtx.currentTime;
+                if (type === 'click') this.playTone(800, 'sine', 0.1, 0.05);
+                if (type === 'win') {
+                    [523, 659, 783, 1046].forEach((f, i) => setTimeout(() => this.playTone(f, 'triangle', 0.4, 0.2), i * 100));
+                }
+                if (type === 'error') {
+                     this.playTone(150, 'sawtooth', 0.3, 0.2);
+                     setTimeout(() => this.playTone(100, 'sawtooth', 0.3, 0.2), 150);
+                }
+                if (type === 'powerup') this.playTone(1200, 'sine', 0.3, 0.2);
+                if (type === 'damage') {
+                    this.playTone(100, 'square', 0.3, 0.2); 
+                    this.playTone(80, 'square', 0.3, 0.2);
+                }
+            }
+
+            startMusic() {
+                if (this.isPlaying) return;
+                this.isPlaying = true;
+                this.nextNoteTime = audioCtx.currentTime;
+                this.scheduler();
+            }
+
+            stopMusic() {
+                this.isPlaying = false;
+                clearTimeout(this.loopId);
+            }
+
+            scheduler() {
+                while (this.nextNoteTime < audioCtx.currentTime + 0.1) {
+                    this.playBeat(this.beat, this.nextNoteTime);
+                    this.nextNoteTime += 60.0 / this.tempo / 4; // 16th notes
+                    this.beat = (this.beat + 1) % 16;
+                }
+                if(this.isPlaying) this.loopId = setTimeout(() => this.scheduler(), 25);
+            }
+
+            playBeat(beat, time) {
+                if (this.muted) return;
+                // Kick (4 on floor)
+                if (beat % 4 === 0) {
+                    const osc = audioCtx.createOscillator();
+                    const g = audioCtx.createGain();
+                    osc.connect(g); g.connect(masterGain);
+                    osc.frequency.setValueAtTime(150, time);
+                    osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.5);
+                    g.gain.setValueAtTime(0.4, time);
+                    g.gain.exponentialRampToValueAtTime(0.01, time + 0.5);
+                    osc.start(time); osc.stop(time + 0.5);
+                }
+                // Bass (Offbeat)
+                if (beat % 4 === 2) {
+                    const osc = audioCtx.createOscillator();
+                    const g = audioCtx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.connect(g); g.connect(masterGain);
+                    osc.frequency.setValueAtTime(65, time);
+                    g.gain.setValueAtTime(0.15, time);
+                    g.gain.linearRampToValueAtTime(0, time + 0.2);
+                    osc.start(time); osc.stop(time + 0.2);
+                }
+                // HiHat (16ths)
+                if (beat % 2 === 0) {
+                    // Simple noise simulation using high freq square
+                    const osc = audioCtx.createOscillator();
+                    const g = audioCtx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(8000, time);
+                    osc.connect(g); g.connect(masterGain);
+                    g.gain.setValueAtTime(0.05, time);
+                    g.gain.exponentialRampToValueAtTime(0.01, time + 0.05);
+                    osc.start(time); osc.stop(time + 0.05);
+                }
+            }
+        }
+        const audio = new AudioEngine();
+
+        // --- GAME LOGIC ---
+        class Game {
+            constructor() {
+                this.difficulty = 'medium';
+                this.screen = 'start-screen';
+                this.stats = { total: 0, correct: 0, wrong: 0, jokers: 0 };
+                this.lives = 3;
+                this.progress = { player: 0, bots: [0, 0, 0] };
+                this.isPlaying = false;
+                this.frozen = false;
+                this.orbs = [];
+                this.questions = [];
+                this.history = []; // Track Q&A for PDF
+                this.currentQ = null;
+                this.removedOptions = [];
+                this.animationFrame = null;
+                this.lastTime = 0;
+            }
+
+            init() {
+                document.getElementById('start-btn').onclick = () => {
+                    audioCtx.resume();
+                    this.showScreen('howto-screen');
+                };
+                document.getElementById('volume-slider').oninput = (e) => audio.setVolume(e.target.value);
+                document.getElementById('mute-btn').onclick = (e) => {
+                   const muted = audio.toggleMute();
+                   e.target.innerText = muted ? '🔇' : '🔊';
+                };
+
+                // ONBOARDING CONSENT LOGIC
+                const consentCheckbox = document.getElementById('consent-checkbox');
+                const chooseRoleBtn = document.getElementById('choose-role-btn');
+                consentCheckbox.onchange = (e) => {
+                    chooseRoleBtn.disabled = !e.target.checked;
+                };
+            }
+
+            showScreen(id) {
+                document.body.classList.remove('defeat-mode', 'victory-mode');
+                document.querySelectorAll('div[id$="-screen"]').forEach(el => el.classList.add('hidden'));
+                const target = document.getElementById(id);
+                if (target) target.classList.remove('hidden');
+                audio.playSFX('click');
+            }
+
+            resetGame() {
+                this.orbs.forEach(o => o.el.remove());
+                this.orbs = [];
+                this.stats = { total: 0, correct: 0, wrong: 0, jokers: 0 };
+                document.body.classList.remove('defeat-mode', 'victory-mode');
+                stopConfetti();
+                
+                // Reset onboarding consent on game reset
+                const consentCheckbox = document.getElementById('consent-checkbox');
+                const chooseRoleBtn = document.getElementById('choose-role-btn');
+                if (consentCheckbox) consentCheckbox.checked = false;
+                if (chooseRoleBtn) chooseRoleBtn.disabled = true;
+
+                this.showScreen('difficulty-screen');
+            }
+
+            startGame(level = null) {
+                if (level) {
+                    this.difficulty = level;
+                }
+
+                this.lives = CONFIG.hearts[this.difficulty];
+                this.progress = { player: 0, bots: [0, 0, 0] };
+                this.orbs = [];
+                this.frozen = false;
+                this.removedOptions = [];
+                this.history = [];
+                document.body.classList.remove('defeat-mode', 'victory-mode');
+                
+                let pool = QUESTIONS.filter(q => q.level === this.difficulty);
+                if (pool.length === 0) pool = QUESTIONS.filter(q => q.level === 'easy'); 
+                this.questions = this.shuffle([...pool]);
+                
+                this.renderHearts();
+                this.renderRole();
+                this.loadNextQuestion();
+                this.showScreen('game-screen');
+                
+                audio.startMusic();
+                this.isPlaying = true;
+                this.lastTime = performance.now();
+                this.animationFrame = requestAnimationFrame(t => this.loop(t));
+                
+                this.orbSpawner = setInterval(() => this.spawnOrb(), 2500); 
+            }
+
+            shuffle(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            }
+
+            renderHearts() {
+                const container = document.getElementById('hearts-display');
+                container.innerHTML = '';
+                for(let i=0; i<CONFIG.hearts[this.difficulty]; i++) {
+                    const h = document.createElement('div');
+                    h.className = `heart ${i < this.lives ? '' : 'lost'}`;
+                    container.appendChild(h);
+                }
+            }
+
+            renderRole() {
+                document.getElementById('role-display').innerText = CONFIG.titles[this.difficulty];
+            }
+
+            loadNextQuestion() {
+                if(this.questions.length === 0) {
+                    let pool = QUESTIONS.filter(q => q.level === this.difficulty);
+                    if (pool.length === 0) pool = QUESTIONS.filter(q => q.level === 'easy');
+                    this.questions = this.shuffle([...pool]);
+                }
+                
+                const qData = this.questions.pop();
+                const indices = [0, 1, 2, 3];
+                this.shuffle(indices);
+                
+                this.currentQ = {
+                    text: qData.q,
+                    options: indices.map(i => qData.options[i]),
+                    correctIndex: indices.indexOf(qData.correct),
+                    originalData: qData
+                };
+
+                this.removedOptions = [];
+                this.renderQuestion();
+            }
+
+            renderQuestion() {
+                document.getElementById('question-text').innerText = this.currentQ.text;
+                const grid = document.getElementById('options-grid');
+                grid.innerHTML = '';
+                
+                this.currentQ.options.forEach((opt, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn';
+                    btn.innerText = opt;
+                    if(this.removedOptions.includes(idx)) {
+                        btn.classList.add('removed');
+                        btn.disabled = true;
+                    }
+                    btn.onclick = () => this.handleAnswer(idx);
+                    grid.appendChild(btn);
+                });
+
+                document.getElementById('quiz-container').classList.remove('frozen');
+                document.getElementById('freeze-overlay').classList.add('hidden');
+            }
+
+            handleAnswer(idx) {
+                if(this.frozen) return;
+
+                this.stats.total++;
+                const isCorrect = (idx === this.currentQ.correctIndex);
+                
+                this.history.push({
+                    q: this.currentQ.text,
+                    status: isCorrect ? 'CORRECT' : 'WRONG'
+                });
+
+                if (isCorrect) {
+                    this.stats.correct++;
+                    audio.playSFX('powerup');
+                    this.progress.player = Math.min(100, this.progress.player + 10);
+                    setTimeout(() => this.loadNextQuestion(), 400);
+                } else {
+                    this.stats.wrong++;
+                    this.takeDamage();
+                    audio.playSFX('error');
+                    this.freezeGame();
+                }
+            }
+
+            freezeGame(penaltyType = null) {
+                this.frozen = true;
+                const overlay = document.getElementById('freeze-overlay');
+                const timerEl = document.getElementById('freeze-timer');
+                const correctText = document.getElementById('freeze-correct-text');
+                const label = document.getElementById('freeze-label');
+                
+                overlay.classList.remove('hidden');
+                document.getElementById('quiz-container').classList.add('frozen');
+
+                if (penaltyType === 'red_orb') {
+                    label.innerText = "SECURITY BREACH DETECTED";
+                    correctText.innerText = "System Halted";
+                    correctText.style.color = "var(--neon-pink)";
+                } else {
+                    label.innerText = "The correct answer was:";
+                    correctText.innerText = this.currentQ.options[this.currentQ.correctIndex];
+                    correctText.style.color = "var(--neon-cyan)";
+                }
+                
+                let time = 3;
+                timerEl.innerText = time;
+                
+                const interval = setInterval(() => {
+                    time--;
+                    timerEl.innerText = time;
+                    if(time <= 0) {
+                        clearInterval(interval);
+                        this.frozen = false;
+                        this.loadNextQuestion();
+                    }
+                }, 1000);
+            }
+
+            takeDamage() {
+                this.lives--;
+                this.renderHearts();
+                if(this.lives <= 0) this.endGame(false);
+            }
+
+            spawnOrb() {
+                if (!this.isPlaying || this.frozen) return;
+                
+                const typeRand = Math.random();
+                let type = 'grey'; 
+                if (typeRand < 0.17) type = 'green'; 
+                else if (typeRand < 0.5) type = 'red'; 
+
+                const orb = document.createElement('div');
+                orb.className = `orb ${type}`;
+                orb.innerHTML = '<div class="orb-inner"></div>';
+                
+                const x = Math.random() * 80 + 10;
+                orb.style.left = x + '%';
+                orb.style.top = '-60px';
+                
+                orb.onmousedown = (e) => {
+                    e.stopPropagation();
+                    this.handleOrbClick(type, orb);
+                };
+                orb.ontouchstart = (e) => {
+                    e.stopPropagation();
+                    this.handleOrbClick(type, orb);
+                };
+
+                document.getElementById('orb-layer').appendChild(orb);
+                
+                let speed = (Math.random() * 1.5 + 1.5);
+                if (Math.random() < 0.2) speed += 2.0;
+
+                this.orbs.push({
+                    el: orb,
+                    y: -60,
+                    speed: speed * (window.innerHeight / 800)
+                });
+            }
+
+            handleOrbClick(type, el) {
+                el.remove();
+                this.orbs = this.orbs.filter(o => o.el !== el);
+
+                if (type === 'green') {
+                    this.stats.jokers++;
+                    audio.playSFX('powerup');
+                    
+                    const wrongIndices = [0,1,2,3].filter(i => i !== this.currentQ.correctIndex);
+                    for (let i = wrongIndices.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [wrongIndices[i], wrongIndices[j]] = [wrongIndices[j], wrongIndices[i]];
+                    }
+                    
+                    const toRemove = wrongIndices.slice(0, 2);
+                    this.removedOptions = [...new Set([...this.removedOptions, ...toRemove])];
+                    this.renderQuestion(); 
+                    
+                } else if (type === 'red') {
+                    audio.playSFX('damage');
+                    this.takeDamage();
+                    this.freezeGame('red_orb'); 
+                } else {
+                    audio.playSFX('click');
+                }
+            }
+
+            loop(timestamp) {
+                if (!this.isPlaying) return;
+                const dt = timestamp - this.lastTime;
+                this.lastTime = timestamp;
+
+                const botSpeed = CONFIG.botSpeed[this.difficulty] * (dt / 16);
+                this.progress.bots = this.progress.bots.map(p => Math.min(100, p + botSpeed * (0.8 + Math.random()*0.4)));
+
+                if (!this.frozen) {
+                    this.orbs.forEach(orb => {
+                        orb.y += orb.speed * (dt / 16);
+                        orb.el.style.transform = `translateY(${orb.y}px)`;
+                    });
+                    
+                    const limit = document.querySelector('.track-container').offsetHeight;
+                    this.orbs = this.orbs.filter(orb => {
+                        if (orb.y > limit) {
+                            orb.el.remove();
+                            return false;
+                        }
+                        return true;
+                    });
+                }
+
+                document.getElementById('bar-player').style.width = this.progress.player + '%';
+                document.getElementById('bar-bot-0').style.width = this.progress.bots[0] + '%';
+                document.getElementById('bar-bot-1').style.width = this.progress.bots[1] + '%';
+                document.getElementById('bar-bot-2').style.width = this.progress.bots[2] + '%';
+
+                if (this.progress.player >= 100) this.endGame(true);
+                else if (this.progress.bots.some(p => p >= 100)) this.endGame(false);
+                else this.animationFrame = requestAnimationFrame(t => this.loop(t));
+            }
+
+            endGame(win) {
+                this.isPlaying = false;
+                audio.stopMusic();
+                if (this.orbSpawner) clearInterval(this.orbSpawner);
+                cancelAnimationFrame(this.animationFrame);
+                
+                audio.playSFX(win ? 'win' : 'damage'); 
+                
+                const title = document.getElementById('end-title');
+                const msg = document.getElementById('end-message');
+                const pdfBtn = document.getElementById('pdf-btn');
+                const learningBox = document.getElementById('learning-box');
+
+                this.showScreen('end-screen');
+                this.renderStatsChart();
+
+                if (win) {
+                    document.body.classList.remove('defeat-mode');
+                    document.body.classList.add('victory-mode'); 
+                    title.innerText = "COMPLIANCE SECURED";
+                    title.className = "title-font text-white";
+                    msg.innerText = "You successfully navigated the IT Governance landscape.";
+                    pdfBtn.classList.remove('hidden');
+                    learningBox.classList.add('hidden');
+                    startConfetti();
+                } else {
+                    document.body.classList.add('defeat-mode');
+                    document.body.classList.remove('victory-mode'); 
+                    title.innerText = "SYSTEM BREACH";
+                    title.className = "title-font text-pink";
+                    msg.innerText = "The competitors overtook your infrastructure. Audit failed.";
+                    pdfBtn.classList.add('hidden');
+                    learningBox.classList.remove('hidden');
+                    this.generateSuggestions();
+                }
+            }
+
+            generateSuggestions() {
+                const diffs = ['easy', 'medium', 'hard', 'expert'];
+                const currIdx = diffs.indexOf(this.difficulty);
+                const msgEl = document.getElementById('adaptive-msg');
+                
+                if (currIdx > 0) {
+                    msgEl.innerText = `Consider trying '${CONFIG.titles[diffs[currIdx-1]]}' to practice.`;
+                } else {
+                    msgEl.innerText = "Keep practicing! You're building a strong foundation.";
+                }
+
+                const list = document.getElementById('topic-list');
+                list.innerHTML = '';
+                const topics = this.shuffle([...LEARNING_TOPICS]).slice(0, 3);
+                topics.forEach(t => {
+                    const li = document.createElement('div');
+                    li.innerHTML = `<span style="color:var(--neon-pink)">⚠</span> ${t}`;
+                    list.appendChild(li);
+                });
+            }
+
+            renderStatsChart() {
+                const container = document.getElementById('stats-chart');
+                container.innerHTML = '';
+                
+                const data = [
+                    { label: 'Total Qs', val: this.stats.total, color: '#ccc' },
+                    { label: 'Correct', val: this.stats.correct, color: 'var(--neon-cyan)' },
+                    { label: 'Wrong', val: this.stats.wrong, color: '#ff2200' },
+                    { label: 'Jokers', val: this.stats.jokers, color: 'var(--neon-green)' },
+                    { label: 'Hearts', val: this.lives, color: 'var(--neon-pink)' }
+                ];
+                
+                const max = Math.max(...data.map(d => d.val), 10);
+                
+                data.forEach(d => {
+                    const group = document.createElement('div');
+                    group.className = 'chart-bar-group';
+                    
+                    const valDiv = document.createElement('div');
+                    valDiv.className = 'chart-val';
+                    valDiv.innerText = d.val;
+                    
+                    const bar = document.createElement('div');
+                    bar.className = 'chart-bar';
+                    bar.style.height = '0%'; 
+                    bar.style.backgroundColor = d.color;
+                    
+                    const label = document.createElement('div');
+                    label.className = 'chart-label';
+                    label.innerText = d.label;
+                    
+                    group.appendChild(valDiv);
+                    group.appendChild(bar);
+                    group.appendChild(label);
+                    container.appendChild(group);
+                    
+                    setTimeout(() => bar.style.height = (d.val / max * 100) + '%', 100);
+                });
+            }
+
+            generatePDF() {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                const pageWidth = doc.internal.pageSize.getWidth();
+                const pageHeight = doc.internal.pageSize.getHeight();
+
+                doc.setFillColor(5, 10, 20); 
+                doc.rect(0, 0, pageWidth, pageHeight, 'F');
+
+                doc.setLineWidth(1);
+                doc.setDrawColor(0, 243, 255); 
+                doc.rect(5, 5, pageWidth - 10, pageHeight - 10);
+                
+                doc.setLineWidth(0.5);
+                doc.setDrawColor(255, 0, 85); 
+                doc.rect(7, 7, pageWidth - 14, pageHeight - 14);
+
+                doc.setFont("courier", "bold");
+                doc.setFontSize(22);
+                doc.setTextColor(0, 243, 255); 
+                doc.text("IT GOVERNANCE REPORT", pageWidth / 2, 25, { align: "center" });
+
+                doc.setFontSize(14);
+                doc.setTextColor(255, 0, 85); 
+                doc.text("/// CONFIDENTIAL ///", pageWidth / 2, 35, { align: "center" }); 
+
+                let cursorY = 50;
+                doc.setFont("courier", "normal");
+                doc.setFontSize(10);
+                doc.setTextColor(255, 255, 255); 
+
+                const leftMargin = 20;
+
+                doc.text(`IT Governance:`, leftMargin, cursorY); cursorY += 5;
+                doc.text(`Director's Report`, leftMargin, cursorY); cursorY += 5;
+                doc.text(`Role: ${CONFIG.titles[this.difficulty]}`, leftMargin, cursorY); cursorY += 5;
+                
+                const statusText = this.lives > 0 ? "COMPLIANCE SECURED (VICTORY)" : "SYSTEM BREACH (FAILURE)";
+                doc.setTextColor(this.lives > 0 ? 0 : 255, this.lives > 0 ? 255 : 0, this.lives > 0 ? 102 : 85); 
+                doc.text(`Status: ${statusText}`, leftMargin, cursorY); 
+                cursorY += 10;
+
+                doc.setFillColor(16, 24, 46); 
+                doc.setDrawColor(0, 243, 255); 
+                doc.setLineWidth(0.5);
+                doc.rect(leftMargin, cursorY, pageWidth - (leftMargin * 2), 40, 'FD');
+
+                let boxY = cursorY + 8;
+                doc.setFontSize(11);
+                doc.setTextColor(0, 243, 255); 
+                doc.text("Performance Metrics:", leftMargin + 5, boxY);
+                
+                boxY += 7;
+                doc.setFontSize(9);
+                doc.setTextColor(255, 255, 255); 
+
+                const qText = `- Questions Attempted: ${this.stats.total}`;
+                const cText = `- Correct Answers:     ${this.stats.correct}`;
+                const wText = `- Compliance Breaches: ${this.stats.wrong}`;
+                const pText = `- Patches Applied:     ${this.stats.jokers}`;
+                const hText = `- System Integrity:    ${this.lives}`;
+
+                doc.text(qText, leftMargin + 10, boxY); boxY += 5;
+                doc.text(cText, leftMargin + 10, boxY); boxY += 5;
+                doc.text(wText, leftMargin + 10, boxY); boxY += 5;
+                doc.text(pText, leftMargin + 10, boxY); boxY += 5;
+                doc.text(hText, leftMargin + 10, boxY);
+                
+                cursorY += 50; 
+
+                doc.setFontSize(12);
+                doc.setTextColor(0, 243, 255); 
+                doc.text("Session History", leftMargin, cursorY);
+                cursorY += 8;
+
+                doc.setFontSize(9);
+                doc.setDrawColor(255, 255, 255);
+                doc.setLineWidth(0.1);
+                doc.line(leftMargin, cursorY - 4, pageWidth - leftMargin, cursorY - 4);
+
+                this.history.forEach((item, index) => {
+                    if (cursorY > pageHeight - 15) return; 
+
+                    const isPass = item.status === 'CORRECT';
+                    const tag = isPass ? "[PASS]" : "[FAIL]";
+                    
+                    if (isPass) doc.setTextColor(0, 255, 102); 
+                    else doc.setTextColor(255, 0, 85); 
+                    
+                    doc.text(tag, leftMargin, cursorY);
+
+                    doc.setTextColor(255, 255, 255);
+                    const textX = leftMargin + 15;
+                    const maxWidth = pageWidth - textX - leftMargin;
+                    
+                    const wrappedText = doc.splitTextToSize(`${index + 1}. ${item.q}`, maxWidth);
+                    doc.text(wrappedText, textX, cursorY);
+                    
+                    cursorY += (wrappedText.length * 4) + 3; 
+                });
+
+                doc.setFontSize(8);
+                doc.setTextColor(100, 100, 100);
+                doc.text("Generated by IT Governance Director's Cut System", pageWidth / 2, pageHeight - 5, { align: "center" });
+
+                doc.save("Director_Report.pdf");
+            }
+        }
+
+        let confettiAnimationId = null;
+        let particles = []; 
+
+        window.addEventListener('resize', () => {
+            const canvas = document.getElementById('confetti-canvas');
+            if (canvas) {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+        });
+
+        function startConfetti() {
+            const canvas = document.getElementById('confetti-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            const colors = ['#9D00FF', '#FF0000', '#00F3FF', '#00FF66', '#FFE600', '#FFFFFF', '#FF00FF'];
+            particles = [];
+            
+            for(let i=0; i<200; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height - canvas.height,
+                    vx: Math.random() * 4 - 2,  
+                    vy: Math.random() * 2 + 2,  
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    size: Math.random() * 6 + 4, 
+                    angle: Math.random() * 360,
+                    spin: Math.random() * 4 - 2
+                });
+            }
+            
+            function animate() {
+                if(document.getElementById('end-screen').classList.contains('hidden')) {
+                     if (confettiAnimationId) cancelAnimationFrame(confettiAnimationId);
+                     ctx.clearRect(0,0, canvas.width, canvas.height);
+                     return;
+                }
+                
+                ctx.clearRect(0,0, canvas.width, canvas.height);
+                
+                particles.forEach(p => {
+                    p.vy += 0.05; 
+                    p.x += p.vx + Math.sin(p.y * 0.01); 
+                    p.y += p.vy;
+                    p.angle += p.spin;
+
+                    if(p.y > canvas.height) {
+                        p.y = -10;
+                        p.x = Math.random() * canvas.width;
+                        p.vy = Math.random() * 2 + 2;
+                    }
+
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate(p.angle * Math.PI / 180);
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+                    ctx.restore();
+                });
+                
+                confettiAnimationId = requestAnimationFrame(animate);
+            }
+            if(confettiAnimationId) cancelAnimationFrame(confettiAnimationId);
+            animate();
+        }
+
+        function stopConfetti() {
+            if(confettiAnimationId) {
+                cancelAnimationFrame(confettiAnimationId);
+                confettiAnimationId = null;
+                const canvas = document.getElementById('confetti-canvas');
+                if (canvas) {
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0,0, canvas.width, canvas.height);
+                }
+            }
+        }
+
+        const game = new Game();
+        window.onload = () => game.init();
+
+    </script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
