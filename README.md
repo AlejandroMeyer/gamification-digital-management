@@ -5,7 +5,7 @@
 ## 📖 Project Overview
 *IT Governance: The Directors' Cut* is a browser-based simulation game designed as the final project for the **Digital Management** Master's course. The game challenges players to navigate the complex landscape of IT Governance, Compliance, and Risk Management.
 
-Players assume the role of an IT Leader (from Junior Analyst to Director) and must race against "automated" corporate threats—External Audit, Cyber Threats, and Legacy Systems—by answering curriculum-based questions correctly and managing system stability in real-time.
+Players assume the role of an IT Leader (from Junior Analyst to Director) and must race against "automated" corporate threats—External Audit, Cyber Threats, and Legacy Systems by answering curriculum-based questions correctly and managing system stability in real-time.
 
 ## 🚀 Key Features
 * **Progressive Difficulty:** Four role-based levels (Junior Analyst to Prof. Dr. MDBM Director).
